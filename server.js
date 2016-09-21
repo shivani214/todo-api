@@ -1,7 +1,7 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 var _ = require('underscore');
-var db = require('./db.js');
+
 var app = express();
 var PORT = process.env.PORT || 3000;
 var todos = [//{
@@ -38,18 +38,18 @@ app.get('/todos', function (req, res) {
         filteredTodos = _.where(filteredTodos, { completed: true });
     }
     else if (queryParams.hasOwnProperty('completed') && queryParams.completed === 'false') {
-        filteredTodos = _.where(filteredTodos, { completed: false });
+        filteredTodos = _.where(filteredTodos, { completed: false});
     }
 
 
-    if (queryParams.hasOwnProperty('q') && queryParams.q.length > 0) {
-        filteredTodos = _.filter(filteredTodos, function (todo) {
-            return todo.description.toLowerCase().indexOf(queryParams.q.toLowerCase()) > -1;
+   if (queryParams.hasOwnProperty('q') && queryParams.q.length > 0){
+       filteredTodos = _.filter(filteredTodos, function (todo){
+           return todo.description.toLowerCase().indexOf(queryParams.q.toLowerCase()) > -1;
 
-        });
+       });
 
-    }
-    res.json(filteredTodos);
+   }
+   res.json(filteredTodos);
 });
 //Get / todos/:id
 app.get('/todos/:id', function (req, res) {
@@ -67,23 +67,23 @@ app.get('/todos/:id', function (req, res) {
 app.post('/todos', function (req, res) {
     var bodyTemp = req.body;
     var body = _.pick(bodyTemp, 'description', 'completed');
-db.todo.create(body).then(function (todo) {
-    res.json(todo.toJSON());
-}, function (e) {
-    res.status(400).json(e);
 
-}); 
+    if (!_.isBoolean(body.completed) || !_.isString(body.description) || body.description.trim().length === 0) {
 
-    // if (!_.isBoolean(body.completed) || !_.isString(body.description) || body.description.trim().length === 0) {
-    //     return res.status(400).send();
-    // }  
-    // body.description = body.description.trim();
-    // body.Id = todoNextId++;
-    // todos.push(body);
-    // console.log('description: ' + body.description);
-    // res.json(body);
+        return res.status(400).send();
+    }
+    body.description = body.description.trim();
 
- });
+
+    body.Id = todoNextId++;
+
+    todos.push(body);
+
+    console.log('description: ' + body.description);
+
+    res.json(body);
+
+});
 app.delete('/todos/:id', function (req, res) {
     var todoId = parseInt(req.params.id, 10);
 
@@ -123,8 +123,7 @@ app.put('/todos/:id', function (req, res) {
     _.extend(matchedTodo, validAttributes);
     res.json(matchedTodo);
 });
-db.sequelize.sync().then(function () {
-    app.listen(PORT, function () {
-        console.log('Express listen on port ' + PORT + '!');
-    });
+
+app.listen(PORT, function () {
+    console.log('Express listen on port ' + PORT + '!');
 });
