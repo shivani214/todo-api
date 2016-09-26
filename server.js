@@ -3,7 +3,7 @@ var bodyParser = require('body-parser');
 var _ = require('underscore');
 var db = require('./db.js');
 var bcryptjs = require('bcryptjs');
-
+var middleware = require('./middleware.js')(db);
 var app = express();
 var PORT = process.env.PORT || 3000;
 var todos = [];
@@ -16,7 +16,7 @@ app.get('/', function (req, res) {
 });
 
 //GET / todos
-app.get('/todos', function (req, res) {
+app.get('/todos', middleware.requireAuthentication, function (req, res) {
     var query = req.query;
     var where = {};
 
@@ -41,7 +41,7 @@ app.get('/todos', function (req, res) {
 
 });
 //Get / todos/:id
-app.get('/todos/:id', function (req, res) {
+app.get('/todos/:id', middleware.requireAuthentication, function (req, res) {
     var todoId = parseInt(req.params.id, 10);
     db.todo.findById(todoId).then(function (todo) {
         if (!!todo) {
@@ -55,7 +55,7 @@ app.get('/todos/:id', function (req, res) {
     });
 });
 
-app.post('/todos', function (req, res) {
+app.post('/todos', middleware.requireAuthentication, function (req, res) {
     var bodyTemp = req.body;
     var body = _.pick(bodyTemp, 'description', 'completed');
 
@@ -69,7 +69,7 @@ app.post('/todos', function (req, res) {
 });
 
 
-app.delete('/todos/:id', function (req, res) {
+app.delete('/todos/:id', middleware.requireAuthentication, function (req, res) {
     var todoId = parseInt(req.params.id, 10);
 
     db.todo.destroy({
@@ -92,7 +92,7 @@ app.delete('/todos/:id', function (req, res) {
 
 
 
-app.put('/todos/:id', function (req, res) {
+app.put('/todos/:id', middleware.requireAuthentication, function (req, res) {
     var todoId = parseInt(req.params.id, 10);
 
     var body = _.pick(req.body, 'description', 'completed');
@@ -133,19 +133,19 @@ app.post('/users/login', function (req, res) {
     var body = _.pick(req.body, 'email', 'password');
 
     db.user.authenticate(body).then(function (user) {
-       var token = user.generateToken('authentication');
-       if (token){
+        var token = user.generateToken('authentication');
+        if (token) {
 
-        res.header('Auth',token ).json(user.toPublicJSON());
-       }else {
-           res.status(401).send();
-       }
+            res.header('Auth', token).json(user.toPublicJSON());
+        } else {
+            res.status(401).send();
+        }
     }, function () {
         res.status(401).send();
-    
+
     });
 });
-db.sequelize.sync({force: true}).then(function () {
+db.sequelize.sync({ force: true }).then(function () {
     app.listen(PORT, function () {
         console.log('Express listen on port ' + PORT + '!');
     });
